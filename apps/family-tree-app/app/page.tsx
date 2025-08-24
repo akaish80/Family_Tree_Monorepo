@@ -350,15 +350,13 @@ const initialEdges: Edge[] = [
         id: 'e1-2',
         source: '1',
         target: '2',
-        style: { strokeWidth: 2, stroke: '#ef6c00' },
-        animated: true,
+        style: { strokeWidth: 2, stroke: '#ef6c00' }
     },
     {
         id: 'e2-3',
         source: '2',
         target: '3',
-        style: { strokeWidth: 2, stroke: '#ef6c00' },
-        animated: true,
+        style: { strokeWidth: 2, stroke: '#ef6c00' }
     },
     {
         id: 'e2-4',
