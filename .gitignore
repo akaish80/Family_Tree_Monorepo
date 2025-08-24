@@ -41,6 +41,8 @@ build/Release
 node_modules/
 jspm_packages/
 apps/**/node_modules/
+package-lock.json
+.turbo
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
