@@ -1,7 +1,12 @@
 "use client";
 
-import { Button } from '@repo/ui/button';
-import { useCallback, useState } from 'react';
+import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
+import InputNode from './components/InputNode';
+import NonEditableNode from './components/NonEditableNode';
+import BottomBar from './components/BottomBar';
+
+import { SetStateAction, useCallback, useRef, useState } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -20,222 +25,7 @@ import {
 import 'reactflow/dist/style.css';
 
 // Custom Input Node Component
-const InputNode = ({ data, id }: { data: any, id: string }) => {
-    const [inputValue, setInputValue] = useState('');
-    const [isEditing, setIsEditing] = useState(true);
-    const [savedName, setSavedName] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
-    const handleSave = async () => {
-        if (inputValue.trim()) {
-            setIsSaving(true);
-            setSaveStatus('idle');
-
-            try {
-                const response = await fetch('/api/family-tree', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'add',
-                        node: {
-                            id: `dynamic-${Date.now()}`, // Generate unique ID
-                            name: inputValue.trim()
-                        }
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setSavedName(inputValue.trim());
-                    setIsEditing(false);
-                    setSaveStatus('success');
-
-                    // Call parent component to add this node to React Flow
-                    if (data.onNodeSaved) {
-                        data.onNodeSaved({
-                            id: `dynamic-${Date.now()}`,
-                            name: inputValue.trim()
-                        });
-                    }
-
-                    // Reset input for next use
-                    setTimeout(() => {
-                        setInputValue('');
-                        setIsEditing(true);
-                        setSavedName('');
-                        setSaveStatus('idle');
-                    }, 2000);
-
-                } else {
-                    setSaveStatus('error');
-                }
-            } catch (error) {
-                console.error('Error saving node:', error);
-                setSaveStatus('error');
-            } finally {
-                setIsSaving(false);
-            }
-        }
-    };
-
-    const handleEdit = () => {
-        setInputValue(savedName);
-        setIsEditing(true);
-    };
-
-    return (
-        <div style={{
-            padding: '12px',
-            background: '#fff8e1',
-            border: '2px solid #ff9800',
-            borderRadius: '12px',
-            minWidth: '200px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }}>
-            <div style={{
-                fontSize: '12px',
-                color: '#e65100',
-                fontWeight: 'bold',
-                marginBottom: '8px',
-                textAlign: 'center',
-            }}>
-                ➕ Add New Member
-            </div>
-
-            {isEditing ? (
-                <div>
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Enter name..."
-                        disabled={isSaving}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #ffb74d',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            marginBottom: '8px',
-                            outline: 'none',
-                            opacity: isSaving ? 0.7 : 1,
-                        }}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !isSaving) {
-                                handleSave();
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={handleSave}
-                        disabled={!inputValue.trim() || isSaving}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            background: isSaving ? '#ffa726' : (inputValue.trim() ? '#ff9800' : '#ccc'),
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: (!inputValue.trim() || isSaving) ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        {isSaving ? '⏳ Saving...' : '💾 Save'}
-                    </button>
-
-                    {saveStatus === 'error' && (
-                        <div style={{
-                            marginTop: '8px',
-                            padding: '6px',
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            textAlign: 'center',
-                        }}>
-                            ❌ Failed to save. Try again.
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div>
-                    {saveStatus === 'success' ? (
-                        <div style={{
-                            padding: '12px',
-                            background: 'linear-gradient(135deg, #e8f5e8, #c8e6c9)',
-                            borderRadius: '8px',
-                            marginBottom: '8px',
-                            textAlign: 'center',
-                            border: '2px solid #4caf50',
-                        }}>
-                            <div style={{
-                                fontSize: '20px',
-                                marginBottom: '4px',
-                            }}>
-                                ✅
-                            </div>
-                            <div style={{
-                                fontWeight: 'bold',
-                                color: '#2e7d32',
-                                fontSize: '14px',
-                                marginBottom: '4px',
-                            }}>
-                                {savedName}
-                            </div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: '#4caf50',
-                            }}>
-                                Added successfully!
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{
-                            padding: '8px',
-                            background: '#f3e5f5',
-                            borderRadius: '6px',
-                            marginBottom: '8px',
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: '#4a148c',
-                        }}>
-                            {savedName}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-};
-const NonEditableNode = ({ data }: { data: any }) => (
-    <div style={{
-        padding: '12px',
-        background: '#e1f5fe',
-        border: '2px solid #01579b',
-        borderRadius: '10px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        minWidth: '120px',
-        color: '#01579b',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
-        userSelect: 'none',
-        // pointerEvents: 'none', // <-- DO NOT set this!
-    }}>
-        {data.label === 'START' && (
-            <Handle type="source" position={Position.Bottom} id="a" style={{ background: '#01579b' }} />
-        )}
-        {data.label === 'End' && (
-            <Handle type="target" position={Position.Top} id="b" style={{ background: '#7b1fa2' }} />
-        )}
-        {data.label}
-    </div>
-);
+// ...existing code...
 
 const nodeTypes = {
     input: InputNode,
@@ -378,11 +168,15 @@ const initialEdges: Edge[] = [
     },
 ];
 
+
 export default function FamilyTreeApp() {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [nextNodePosition, setNextNodePosition] = useState({ x: 200, y: 600 });
     const [notification, setNotification] = useState<string | null>(null);
+    // Sidebars are always visible now
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
     const onConnect: OnConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
@@ -411,20 +205,13 @@ export default function FamilyTreeApp() {
             },
         };
 
-        // Add the new node to the canvas
         setNodes((prevNodes) => [...prevNodes, newNode]);
-
-        // Show notification
         setNotification(`✨ Added "${nodeData.name}" to the family tree!`);
         setTimeout(() => setNotification(null), 3000);
-
-        // Update position for next node (stagger them)
         setNextNodePosition(prev => ({
-            x: prev.x + 220, // Move to the right
-            y: prev.x > 800 ? prev.y + 100 : prev.y, // Move down if too far right
+            x: prev.x + 220,
+            y: prev.x > 800 ? prev.y + 100 : prev.y,
         }));
-
-        // Reset x position if we've gone too far right
         if (nextNodePosition.x > 800) {
             setNextNodePosition(prev => ({ x: 200, y: prev.y }));
         }
@@ -444,11 +231,9 @@ export default function FamilyTreeApp() {
         return node;
     });
 
-
     const onNodesChangeFiltered = useCallback(
-        (changes) => {
-            // Filter out remove actions for START and END nodes
-            const filtered = changes.filter(change => {
+        (changes: any[]) => {
+            const filtered = changes.filter((change: { type: string; id: string; }) => {
                 if (change.type === 'remove') {
                     const node = nodes.find(n => n.id === change.id);
                     if (node && (node.type === 'START' || node.type === 'END')) {
@@ -462,51 +247,83 @@ export default function FamilyTreeApp() {
         [onNodesChange, nodes]
     );
 
+    // Drag and drop handlers for React Flow
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('application/reactflow');
+        if (!type) return;
+
+        const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+        const position = reactFlowBounds
+            ? {
+                x: event.clientX - reactFlowBounds.left,
+                y: event.clientY - reactFlowBounds.top,
+            }
+            : { x: 250, y: 250 };
+
+        const newNode: Node = {
+            id: `dnd_${+new Date()}`,
+            type: 'default',
+            position,
+            data: { label: 'Person' },
+            style: {
+                background: '#e1f7d5',
+                border: '2px solid #4caf50',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                padding: '10px',
+                width: 160,
+                boxShadow: '0 4px 16px rgba(76, 175, 80, 0.3)',
+            },
+        };
+        setNodes((nds) => nds.concat(newNode));
+        setNotification('✨ Added "Person" node!');
+        setTimeout(() => setNotification(null), 2000);
+    }, [setNodes]);
+
+    // Node selection handler
+    const onNodeClick = useCallback((_event: any, node: SetStateAction<Node | null>) => {
+        setSelectedNode(node);
+    // right sidebar always visible, just set selected node
+    }, []);
+
+    // Edit node handler (for demo, just shows alert)
+    const handleEditNode = useCallback(() => {
+        if (selectedNode) {
+            alert(`Edit node: ${selectedNode.id}`);
+        }
+    }, [selectedNode]);
+
+    // Delete node handler
+    const handleDeleteNode = useCallback(() => {
+        if (selectedNode) {
+            setNodes((nds) => nds.filter(n => n.id !== selectedNode.id));
+            setSelectedNode(null);
+            // setRightSidebarCollapsed(true);
+        }
+    }, [selectedNode, setNodes]);
+
     return (
-        <div style={{
-            width: '100vw',
-            height: '100vh',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}>
-            <div style={{
-                position: 'absolute',
-                top: 20,
-                left: 20,
-                zIndex: 4,
-                background: 'rgba(255, 255, 255, 0.95)',
-                padding: '15px 25px',
-                borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-            }}>
-                <h1 style={{
-                    margin: 0,
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                }}>
-                    🌳 Family Tree Visualization
-                </h1>
-                <p style={{
-                    margin: '5px 0 0 0',
-                    fontSize: '14px',
-                    color: '#666',
-                    fontWeight: '500',
-                }}>
-                    Interactive family tree with React Flow
-                </p>
-            </div>
+        <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <Sidebar />
+            <RightSidebar
+                selectedNode={selectedNode}
+                onEdit={handleEditNode}
+                onDelete={handleDeleteNode}
+            />
 
             {/* Notification */}
             {notification && (
                 <div style={{
                     position: 'absolute',
                     top: 20,
-                    right: 20,
+                    right: 60,
                     zIndex: 5,
                     background: 'rgba(76, 175, 80, 0.95)',
                     color: 'white',
@@ -522,40 +339,42 @@ export default function FamilyTreeApp() {
                 </div>
             )}
 
-            <ReactFlow
-                nodes={updatedNodes}
-                edges={edges}
-                onNodesChange={onNodesChangeFiltered}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                nodeTypes={nodeTypes}
-                fitView
-                style={{
-                    background: 'transparent',
-                }}
+            <div
+                ref={reactFlowWrapper}
+                style={{ width: '100vw', height: '100vh', marginLeft: 180, marginRight: 240 }}
             >
-                <Controls
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                    }}
-                />
-                <MiniMap
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                    }}
-                    maskColor="rgba(100, 116, 234, 0.1)"
-                />
-                <Background
-                    gap={20}
-                    size={1}
-                    color="rgba(255, 255, 255, 0.3)"
-                />
-            </ReactFlow>
-            <button>Save</button>
+                <ReactFlow
+                    nodes={updatedNodes}
+                    edges={edges}
+                    onNodesChange={onNodesChangeFiltered}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    style={{ background: 'transparent' }}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onNodeClick={onNodeClick}
+                >
+                    <Controls
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                        }}
+                    />
+                    <MiniMap
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                        }}
+                        maskColor="rgba(100, 116, 234, 0.1)"
+                    />
+                    <Background gap={20} size={1} color="rgba(255, 255, 255, 0.3)" />
+                </ReactFlow>
+            </div>
+            <BottomBar />
         </div>
     );
 }
