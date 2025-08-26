@@ -119,6 +119,33 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
+        // Handle saving the entire tree
+        if (body.action === "save" && body.nodes && body.edges) {
+            familyTreeData.nodes = body.nodes;
+            familyTreeData.edges = body.edges;
+
+            const response = NextResponse.json({
+                success: true,
+                message: "Family tree updated successfully",
+                nodes: familyTreeData.nodes,
+                edges: familyTreeData.edges,
+            });
+
+            // Add CORS headers
+            response.headers.set("Access-Control-Allow-Origin", "*");
+            response.headers.set(
+                "Access-Control-Allow-Methods",
+                "GET, POST, PUT, DELETE, OPTIONS"
+            );
+            response.headers.set(
+                "Access-Control-Allow-Headers",
+                "Content-Type, Authorization"
+            );
+
+            return response;
+        }
+
+
         if (body.action === "add" && body.node) {
             // Add new family member to dynamic members
             const newMember = {

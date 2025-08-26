@@ -23,23 +23,44 @@ const Sidebar = () => (
         <div
             draggable
             onDragStart={e => {
-                e.dataTransfer.setData('application/reactflow', 'person');
+                e.dataTransfer.setData('application/reactflow', 'view');
                 e.dataTransfer.effectAllowed = 'move';
             }}
             style={{
                 margin: '0 0 0 16px',
                 padding: '10px 18px',
-                background: '#e1f7d5',
-                border: '2px solid #4caf50',
+                background: '#e3f2fd',
+                border: '2px solid #1976d2',
                 borderRadius: 8,
                 cursor: 'grab',
                 fontWeight: 500,
-                color: '#388e3c',
+                color: '#1565c0',
                 marginBottom: 12,
                 userSelect: 'none',
             }}
         >
-            👤 Person
+            👁️ View
+        </div>
+        <div
+            draggable
+            onDragStart={e => {
+                e.dataTransfer.setData('application/reactflow', 'DECISION');
+                e.dataTransfer.effectAllowed = 'move';
+            }}
+            style={{
+                margin: '0 0 0 16px',
+                padding: '10px 18px',
+                background: '#fff3e0',
+                border: '2px solid #ff9800',
+                borderRadius: 8,
+                cursor: 'grab',
+                fontWeight: 500,
+                color: '#ef6c00',
+                marginBottom: 12,
+                userSelect: 'none',
+            }}
+        >
+            🔀 Decision
         </div>
     </div>
 );

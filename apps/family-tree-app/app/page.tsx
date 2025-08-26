@@ -23,6 +23,7 @@ import {
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
+import EditNodeModal from './components/EditNodeModal';
 
 // Custom Input Node Component
 // ...existing code...
@@ -54,7 +55,7 @@ const initialNodes: Node[] = [
     {
         id: '2',
         type: 'DECISION',
-        position: { x: 200, y: 200 },
+        position: { x: 396, y: 153 },
         data: {
             label: 'decide',
             choices: [
@@ -83,7 +84,7 @@ const initialNodes: Node[] = [
     {
         id: '3',
         type: 'default',
-        position: { x: 600, y: 200 },
+        position: { x: 616, y: 271 },
         data: {
             label: "param-node",
             transientData: "Found in Query Param",
@@ -101,7 +102,7 @@ const initialNodes: Node[] = [
     {
         id: '4',
         type: 'default',
-        position: { x: 300, y: 350 },
+        position: { x: 313, y: 279 },
         data: {
             label: "no-param-node",
             transientData: "Value without queryparam",
@@ -119,7 +120,7 @@ const initialNodes: Node[] = [
     {
         id: '5',
         type: 'END',
-        position: { x: 500, y: 350 },
+        position: { x: 484, y: 386 },
         data: {
             label: 'End',
         },
@@ -177,6 +178,12 @@ export default function FamilyTreeApp() {
     // Sidebars are always visible now
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editHtml, setEditHtml] = useState('');
+    const [editConditions, setEditConditions] = useState<string[]>([]);
+    const [editType, setEditType] = useState<string | null>(null);
+
 
     const onConnect: OnConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
@@ -206,7 +213,7 @@ export default function FamilyTreeApp() {
         };
 
         setNodes((prevNodes) => [...prevNodes, newNode]);
-        setNotification(`✨ Added "${nodeData.name}" to the family tree!`);
+        setNotification(`✨ Added "${nodeData.name}" to the family tree!`);
         setTimeout(() => setNotification(null), 3000);
         setNextNodePosition(prev => ({
             x: prev.x + 220,
@@ -266,39 +273,63 @@ export default function FamilyTreeApp() {
             }
             : { x: 250, y: 250 };
 
-        const newNode: Node = {
-            id: `dnd_${+new Date()}`,
-            type: 'default',
-            position,
-            data: { label: 'Person' },
-            style: {
-                background: '#e1f7d5',
-                border: '2px solid #4caf50',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                padding: '10px',
-                width: 160,
-                boxShadow: '0 4px 16px rgba(76, 175, 80, 0.3)',
-            },
-        };
+        let newNode: Node;
+        let nodeId = `dnd_${+new Date()}`;
+
+        if (type === 'view') {
+            newNode = {
+                id: nodeId,
+                type: 'default',
+                position,
+                data: { label: 'View Node', html: '' },
+                style: {
+                    background: '#e3f2fd',
+                    border: '2px solid #1976d2',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    padding: '10px',
+                    width: 160,
+                },
+            };
+            setEditTitle('View Node');
+            setEditHtml('');
+            setEditType('view');
+        } else if (type === 'DECISION') {
+            newNode = {
+                id: nodeId,
+                type: 'DECISION',
+                position,
+                data: { label: 'Decision Node', choices: [''] },
+                style: {
+                    background: '#fff3e0',
+                    border: '2px solid #ff9800',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    padding: '10px',
+                    width: 160,
+                },
+            };
+            setEditTitle('Decision Node');
+            setEditConditions(['']);
+            setEditType('DECISION');
+        } else {
+            return;
+        }
+
         setNodes((nds) => nds.concat(newNode));
-        setNotification('✨ Added "Person" node!');
-        setTimeout(() => setNotification(null), 2000);
+        setSelectedNode(newNode);
+        setEditModalOpen(true);
     }, [setNodes]);
 
     // Node selection handler
     const onNodeClick = useCallback((_event: any, node: SetStateAction<Node | null>) => {
         setSelectedNode(node);
-    // right sidebar always visible, just set selected node
+        // right sidebar always visible, just set selected node
     }, []);
 
-    // Edit node handler (for demo, just shows alert)
-    const handleEditNode = useCallback(() => {
-        if (selectedNode) {
-            alert(`Edit node: ${selectedNode.id}`);
-        }
-    }, [selectedNode]);
+
 
     // Delete node handler
     const handleDeleteNode = useCallback(() => {
@@ -309,13 +340,88 @@ export default function FamilyTreeApp() {
         }
     }, [selectedNode, setNodes]);
 
+    const handleSave = useCallback(async () => {
+        const response = await fetch('/api/family-tree', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'save',
+                nodes,
+                edges,
+            }),
+        });
+        const result = await response.json();
+        if (result.success) {
+            setNotification('💾 Family tree saved successfully!');
+        } else {
+            setNotification('❌ Error saving family tree.');
+        }
+        setTimeout(() => setNotification(null), 3000);
+    }, [nodes, edges]);
+
+    // Edit node handler (open modal and prepopulate)
+
+    const handleEditNode = useCallback(() => {
+        if (selectedNode) {
+            setEditTitle(selectedNode.data?.label || '');
+            setEditModalOpen(true);
+        }
+    }, [selectedNode]);
+    // Save edited node title
+    const handleEditSave = useCallback(() => {
+        if (selectedNode) {
+            setNodes(nds =>
+                nds.map(n => {
+                    if (n.id !== selectedNode.id) return n;
+                    if (editType === 'view') {
+                        return {
+                            ...n,
+                            data: { ...n.data, label: editTitle, transientData: editHtml }
+                        };
+                    }
+                    if (editType === 'DECISION') {
+                        return {
+                            ...n,
+                            data: { ...n.data, label: editTitle, choices: editConditions }
+                        };
+                    }
+                    return { ...n, data: { ...n.data, label: editTitle } };
+                })
+            );
+            setEditModalOpen(false);
+        }
+    }, [selectedNode, editTitle, editHtml, editConditions, editType, setNodes]);
+
+
     return (
         <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
             <Sidebar />
             <RightSidebar
                 selectedNode={selectedNode}
-                onEdit={handleEditNode}
+                onEdit={() => {
+                    if (selectedNode) {
+                        setEditTitle(selectedNode.data?.label || '');
+                        setEditHtml(selectedNode.data?.transientData || '');
+                        setEditConditions(selectedNode.data?.choices || ['']);
+                        setEditType(selectedNode.type === 'DECISION' ? 'DECISION' : 'view');
+                        setEditModalOpen(true);
+                    }
+                }}
                 onDelete={handleDeleteNode}
+            />
+
+            {/* Edit Modal */}
+            <EditNodeModal
+                open={editModalOpen}
+                editType={editType}
+                editTitle={editTitle}
+                setEditTitle={setEditTitle}
+                editHtml={editHtml}
+                setEditHtml={setEditHtml}
+                editConditions={editConditions}
+                setEditConditions={setEditConditions}
+                onClose={() => setEditModalOpen(false)}
+                onSave={handleEditSave}
             />
 
             {/* Notification */}
@@ -374,7 +480,7 @@ export default function FamilyTreeApp() {
                     <Background gap={20} size={1} color="rgba(255, 255, 255, 0.3)" />
                 </ReactFlow>
             </div>
-            <BottomBar />
+            <BottomBar onSave={handleSave} />
         </div>
     );
 }
