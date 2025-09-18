@@ -83,7 +83,7 @@ const initialNodes: Node[] = [
     },
     {
         id: '3',
-        type: 'default',
+        type: 'VIEW',
         position: { x: 616, y: 271 },
         data: {
             label: "param-node",
@@ -101,7 +101,7 @@ const initialNodes: Node[] = [
     },
     {
         id: '4',
-        type: 'default',
+        type: 'VIEW',
         position: { x: 313, y: 279 },
         data: {
             label: "no-param-node",
@@ -279,7 +279,7 @@ export default function FamilyTreeApp() {
         if (type === 'view') {
             newNode = {
                 id: nodeId,
-                type: 'default',
+                type: 'VIEW',
                 position,
                 data: { label: 'View Node', html: '' },
                 style: {
@@ -341,6 +341,17 @@ export default function FamilyTreeApp() {
     }, [selectedNode, setNodes]);
 
     const handleSave = useCallback(async () => {
+        const updatedNode = nodes.map(item=> {
+            const targetNode = edges.filter(edge => edge.source === item.id)?.[0]?.target;
+            return {
+                "id": item.id,
+                "nodeName": item.data.label,
+                "nextNode": targetNode,
+                "type": item.type,
+                "position": item.position,
+                "data": item.data
+            };
+        });
         const response = await fetch('/api/family-tree', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -348,6 +359,7 @@ export default function FamilyTreeApp() {
                 action: 'save',
                 nodes,
                 edges,
+                updatedNode
             }),
         });
         const result = await response.json();

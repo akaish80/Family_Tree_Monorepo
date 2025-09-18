@@ -11,11 +11,12 @@ interface FamilyTreeData {
     nodes: any[];
     edges: any[];
     dynamicMembers: DynamicMember[];
+    updatedNode?: any[] | null;
 }
 
 // In-memory storage for demo (in production, use a database)
 let familyTreeData: FamilyTreeData = {
-    startNode: "2",
+    startNode: "1",
     nodes: [
         {
             id: "1",
@@ -30,9 +31,9 @@ let familyTreeData: FamilyTreeData = {
         {
             id: "2",
             nodeName: "2",
-            nodeType: "DECISION",
+            type: "DECISION",
             position: { x: 100, y: 125 },
-            nodeSettings: {
+            data: {
                 choices: [
                     {
                         nextNode: "3",
@@ -48,7 +49,7 @@ let familyTreeData: FamilyTreeData = {
         {
             id: "3",
             nodeName: "3",
-            type: "DATA",
+            type: "VIEW",
             position: { x: 100, y: 125 },
             data: {
                 label: "param-node",
@@ -58,7 +59,7 @@ let familyTreeData: FamilyTreeData = {
         {
             id: "4",
             nodeName: "4",
-            type: "DATA",
+            type: "VIEW",
             position: { x: 100, y: 125 },
             data: {
                 label: "no-param-node",
@@ -123,6 +124,8 @@ export async function POST(request: Request) {
         if (body.action === "save" && body.nodes && body.edges) {
             familyTreeData.nodes = body.nodes;
             familyTreeData.edges = body.edges;
+            familyTreeData.startNode = body.startNode || familyTreeData.startNode;
+            familyTreeData.updatedNode = body.updatedNode || null;
 
             const response = NextResponse.json({
                 success: true,

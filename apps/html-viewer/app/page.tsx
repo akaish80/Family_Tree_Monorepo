@@ -7,6 +7,7 @@ interface FamilyTreeNode {
     id: string;
     data: {
         label: string;
+        transientData?: string;
     };
     position: {
         x: number;
@@ -24,6 +25,7 @@ interface FamilyTreeData {
     nodes: FamilyTreeNode[];
     edges: FamilyTreeEdge[];
     dynamicMembers?: DynamicMember[];
+    updatedNode?: any[] | null;
 }
 
 interface DynamicMember {
@@ -37,9 +39,12 @@ export default function HTMLViewer() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastFetchTime, setLastFetchTime] = useState<string>('');
-    const [isPolling, setIsPolling] = useState(true);
+    const [isPolling, setIsPolling] = useState(false);
 
     const [htmlOutut, setHtmlOutput] = useState('')
+    const [currentViewNode, setCurrentViewNode] = useState(null)
+    const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+
 
     function parseKeyValuePair(str: string): Record<string, string> {
         return str.split('~')?.reduce((acc: Record<string, string>, pair: string) => {
@@ -71,7 +76,7 @@ export default function HTMLViewer() {
     }
 
     const handleDecisionNode = (nodeConfig: any) => {
-        const choice = nodeConfig.nodeSettings.choices;
+        const choice = nodeConfig.data.choices;
         let defaultChoice
         let choiceResult
         if (choice?.length) {
@@ -88,27 +93,72 @@ export default function HTMLViewer() {
         return null
     }
 
-    useEffect(() => {
-        const parseFamilyTreeData = (data: any): any => {
-            const nodeConfig = data.nodes.find((node: any) => node.nodeName === data.startNode)
-
-
-            let nextNode: string = nodeConfig.nextNode
-            switch (nodeConfig.nodeType) {
+    const decisionMaker = (nodeConfig: any, nextNode: string | null, nodes:any) => {
+        let newNode: string | null = nextNode;
+            switch (nodeConfig.type) {
                 case 'DECISION':
+                    setCurrentViewNode(null)
                     const choiceResult = handleDecisionNode(nodeConfig)
                     if (choiceResult === null) {
                         return choiceResult
                     }
-                    nextNode = choiceResult
+                    newNode = choiceResult
                     break;
+                case 'VIEW':
+                    setCurrentNodeId(nodeConfig.id)
+                    setCurrentViewNode(nodeConfig)
+                    newNode = null
+                    break;
+                case 'END':
+                    setCurrentViewNode(null)
+                    newNode = null
+                    break;
+
             }
 
-            const nextNewNode = data.nodes.find((node: any) => node.nodeName === nextNode)
-            // setHtmlOutput()
-            if (nextNewNode?.type === 'DATA') {
-                setHtmlOutput(nextNewNode.data.transientData)
-            }
+            // const nextNewNode = data.nodes.find((node: any) => node.nodeName === nextNode)
+            // // setHtmlOutput()
+            // if (nextNewNode?.type === 'DATA') {
+            //     setHtmlOutput(nextNewNode.data.transientData)
+            // }
+            if (newNode !== null){
+                //   if (!familyTreeData || !currentNodeId) return;
+                // const edge = familyTreeData?.edges?.find(e => e.source === newNode);
+                const node = nodes.find(e => e.id === newNode);
+                decisionMaker(node, node?.nextNode || null, nodes)
+
+            return newNode
+        }
+    }
+
+    useEffect(() => {
+        const parseFamilyTreeData = (data: any): any => {
+            debugger;
+            const responseNode = data.updatedNode || data.nodes
+            const nodeConfig = responseNode.find((node: any) => node.id === data.startNode)
+            let nextNode: string | null = nodeConfig.nextNode
+
+            decisionMaker(nodeConfig, nextNode, responseNode)
+            // let nextNode: string = nodeConfig.nextNode
+            // switch (nodeConfig.nodeType) {
+            //     case 'DECISION':
+            //         const choiceResult = handleDecisionNode(nodeConfig)
+            //         if (choiceResult === null) {
+            //             return choiceResult
+            //         }
+            //         nextNode = choiceResult
+            //         break;
+            //     case 'VIEW':
+            //         setCurrentViewNode(nodeConfig)
+            //         break;
+
+            // }
+
+            // const nextNewNode = data.nodes.find((node: any) => node.nodeName === nextNode)
+            // // setHtmlOutput()
+            // if (nextNewNode?.type === 'DATA') {
+            //     setHtmlOutput(nextNewNode.data.transientData)
+            // }
         }
 
         const fetchFamilyTreeData = async () => {
@@ -154,6 +204,69 @@ export default function HTMLViewer() {
         setIsPolling(!isPolling);
     };
 
+    const goToNextNode = () => {
+        
+        if (!familyTreeData ) return;
+        const nextNode = currentViewNode?.id
+        const nodes = familyTreeData?.updatedNode || familyTreeData?.nodes
+        const edge = familyTreeData?.edges?.find(e => e.source === nextNode);
+        const node = nodes?.find(e => e.id === edge?.target);
+
+        if (edge) {
+            decisionMaker(node, edge.target, nodes);
+            setCurrentNodeId(edge.target);
+        }
+    }
+
+
+      const renderViewNodePage = (node: FamilyTreeNode) => (
+        <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '40px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            maxWidth: '700px',
+            margin: '40px auto',
+            textAlign: 'center',
+        }}>
+            <h2 style={{
+                color: '#764ba2',
+                fontWeight: 700,
+                fontSize: '2rem',
+                marginBottom: '24px',
+            }}>{node.data.label}</h2>
+            <div
+                style={{
+                    fontSize: '1.1rem',
+                    color: '#333',
+                    marginBottom: '32px',
+                    textAlign: 'left',
+                    background: '#f8f9fa',
+                    borderRadius: '8px',
+                    padding: '24px',
+                    minHeight: '120px',
+                }}
+                dangerouslySetInnerHTML={{ __html: node.data.transientData || '' }}
+            />
+            <button
+                onClick={goToNextNode}
+                style={{
+                    padding: '12px 32px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(118,75,162,0.08)',
+                    marginTop: '16px',
+                }}
+            >
+                Next
+            </button>
+        </div>
+    );
     const manualRefresh = async () => {
         setLoading(true);
         try {
@@ -391,6 +504,7 @@ export default function HTMLViewer() {
                             Loading family tree data...
                         </div>
                     )}
+                           
 
                     {error && (
                         <div style={{
@@ -569,6 +683,8 @@ export default function HTMLViewer() {
                         }
                     </p>
                 </div>
+                {currentViewNode?.type === 'VIEW' && renderViewNodePage(currentViewNode)}
+
             </div>
 
             <style jsx>{`
