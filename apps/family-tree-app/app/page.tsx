@@ -1,7 +1,12 @@
 "use client";
 
-import { Button } from '@repo/ui/button';
-import { useCallback, useState } from 'react';
+import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
+import InputNode from './components/InputNode';
+import NonEditableNode from './components/NonEditableNode';
+import BottomBar from './components/BottomBar';
+
+import { SetStateAction, useCallback, useRef, useState } from 'react';
 import {
     ReactFlow,
     MiniMap,
@@ -18,224 +23,10 @@ import {
 } from 'reactflow';
 
 import 'reactflow/dist/style.css';
+import EditNodeModal from './components/EditNodeModal';
 
 // Custom Input Node Component
-const InputNode = ({ data, id }: { data: any, id: string }) => {
-    const [inputValue, setInputValue] = useState('');
-    const [isEditing, setIsEditing] = useState(true);
-    const [savedName, setSavedName] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
-    const handleSave = async () => {
-        if (inputValue.trim()) {
-            setIsSaving(true);
-            setSaveStatus('idle');
-
-            try {
-                const response = await fetch('/api/family-tree', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: 'add',
-                        node: {
-                            id: `dynamic-${Date.now()}`, // Generate unique ID
-                            name: inputValue.trim()
-                        }
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    setSavedName(inputValue.trim());
-                    setIsEditing(false);
-                    setSaveStatus('success');
-
-                    // Call parent component to add this node to React Flow
-                    if (data.onNodeSaved) {
-                        data.onNodeSaved({
-                            id: `dynamic-${Date.now()}`,
-                            name: inputValue.trim()
-                        });
-                    }
-
-                    // Reset input for next use
-                    setTimeout(() => {
-                        setInputValue('');
-                        setIsEditing(true);
-                        setSavedName('');
-                        setSaveStatus('idle');
-                    }, 2000);
-
-                } else {
-                    setSaveStatus('error');
-                }
-            } catch (error) {
-                console.error('Error saving node:', error);
-                setSaveStatus('error');
-            } finally {
-                setIsSaving(false);
-            }
-        }
-    };
-
-    const handleEdit = () => {
-        setInputValue(savedName);
-        setIsEditing(true);
-    };
-
-    return (
-        <div style={{
-            padding: '12px',
-            background: '#fff8e1',
-            border: '2px solid #ff9800',
-            borderRadius: '12px',
-            minWidth: '200px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }}>
-            <div style={{
-                fontSize: '12px',
-                color: '#e65100',
-                fontWeight: 'bold',
-                marginBottom: '8px',
-                textAlign: 'center',
-            }}>
-                ➕ Add New Member
-            </div>
-
-            {isEditing ? (
-                <div>
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Enter name..."
-                        disabled={isSaving}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            border: '1px solid #ffb74d',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            marginBottom: '8px',
-                            outline: 'none',
-                            opacity: isSaving ? 0.7 : 1,
-                        }}
-                        onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !isSaving) {
-                                handleSave();
-                            }
-                        }}
-                    />
-                    <button
-                        onClick={handleSave}
-                        disabled={!inputValue.trim() || isSaving}
-                        style={{
-                            width: '100%',
-                            padding: '8px',
-                            background: isSaving ? '#ffa726' : (inputValue.trim() ? '#ff9800' : '#ccc'),
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            fontWeight: 'bold',
-                            cursor: (!inputValue.trim() || isSaving) ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        {isSaving ? '⏳ Saving...' : '💾 Save'}
-                    </button>
-
-                    {saveStatus === 'error' && (
-                        <div style={{
-                            marginTop: '8px',
-                            padding: '6px',
-                            backgroundColor: '#ffebee',
-                            color: '#d32f2f',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            textAlign: 'center',
-                        }}>
-                            ❌ Failed to save. Try again.
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div>
-                    {saveStatus === 'success' ? (
-                        <div style={{
-                            padding: '12px',
-                            background: 'linear-gradient(135deg, #e8f5e8, #c8e6c9)',
-                            borderRadius: '8px',
-                            marginBottom: '8px',
-                            textAlign: 'center',
-                            border: '2px solid #4caf50',
-                        }}>
-                            <div style={{
-                                fontSize: '20px',
-                                marginBottom: '4px',
-                            }}>
-                                ✅
-                            </div>
-                            <div style={{
-                                fontWeight: 'bold',
-                                color: '#2e7d32',
-                                fontSize: '14px',
-                                marginBottom: '4px',
-                            }}>
-                                {savedName}
-                            </div>
-                            <div style={{
-                                fontSize: '12px',
-                                color: '#4caf50',
-                            }}>
-                                Added successfully!
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{
-                            padding: '8px',
-                            background: '#f3e5f5',
-                            borderRadius: '6px',
-                            marginBottom: '8px',
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            color: '#4a148c',
-                        }}>
-                            {savedName}
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-};
-const NonEditableNode = ({ data }: { data: any }) => (
-    <div style={{
-        padding: '12px',
-        background: '#e1f5fe',
-        border: '2px solid #01579b',
-        borderRadius: '10px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        minWidth: '120px',
-        color: '#01579b',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
-        userSelect: 'none',
-        // pointerEvents: 'none', // <-- DO NOT set this!
-    }}>
-        {data.label === 'START' && (
-            <Handle type="source" position={Position.Bottom} id="a" style={{ background: '#01579b' }} />
-        )}
-        {data.label === 'End' && (
-            <Handle type="target" position={Position.Top} id="b" style={{ background: '#7b1fa2' }} />
-        )}
-        {data.label}
-    </div>
-);
+// ...existing code...
 
 const nodeTypes = {
     input: InputNode,
@@ -264,7 +55,7 @@ const initialNodes: Node[] = [
     {
         id: '2',
         type: 'DECISION',
-        position: { x: 200, y: 200 },
+        position: { x: 396, y: 153 },
         data: {
             label: 'decide',
             choices: [
@@ -292,8 +83,8 @@ const initialNodes: Node[] = [
     },
     {
         id: '3',
-        type: 'default',
-        position: { x: 600, y: 200 },
+        type: 'VIEW',
+        position: { x: 616, y: 271 },
         data: {
             label: "param-node",
             transientData: "Found in Query Param",
@@ -310,8 +101,8 @@ const initialNodes: Node[] = [
     },
     {
         id: '4',
-        type: 'default',
-        position: { x: 300, y: 350 },
+        type: 'VIEW',
+        position: { x: 313, y: 279 },
         data: {
             label: "no-param-node",
             transientData: "Value without queryparam",
@@ -329,7 +120,7 @@ const initialNodes: Node[] = [
     {
         id: '5',
         type: 'END',
-        position: { x: 500, y: 350 },
+        position: { x: 484, y: 386 },
         data: {
             label: 'End',
         },
@@ -378,11 +169,21 @@ const initialEdges: Edge[] = [
     },
 ];
 
+
 export default function FamilyTreeApp() {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [nextNodePosition, setNextNodePosition] = useState({ x: 200, y: 600 });
     const [notification, setNotification] = useState<string | null>(null);
+    // Sidebars are always visible now
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editHtml, setEditHtml] = useState('');
+    const [editConditions, setEditConditions] = useState<string[]>([]);
+    const [editType, setEditType] = useState<string | null>(null);
+
 
     const onConnect: OnConnect = useCallback(
         (params) => setEdges((eds) => addEdge(params, eds)),
@@ -411,20 +212,13 @@ export default function FamilyTreeApp() {
             },
         };
 
-        // Add the new node to the canvas
         setNodes((prevNodes) => [...prevNodes, newNode]);
-
-        // Show notification
-        setNotification(`✨ Added "${nodeData.name}" to the family tree!`);
+        setNotification(`✨ Added "${nodeData.name}" to the family tree!`);
         setTimeout(() => setNotification(null), 3000);
-
-        // Update position for next node (stagger them)
         setNextNodePosition(prev => ({
-            x: prev.x + 220, // Move to the right
-            y: prev.x > 800 ? prev.y + 100 : prev.y, // Move down if too far right
+            x: prev.x + 220,
+            y: prev.x > 800 ? prev.y + 100 : prev.y,
         }));
-
-        // Reset x position if we've gone too far right
         if (nextNodePosition.x > 800) {
             setNextNodePosition(prev => ({ x: 200, y: prev.y }));
         }
@@ -444,11 +238,9 @@ export default function FamilyTreeApp() {
         return node;
     });
 
-
     const onNodesChangeFiltered = useCallback(
-        (changes) => {
-            // Filter out remove actions for START and END nodes
-            const filtered = changes.filter(change => {
+        (changes: any[]) => {
+            const filtered = changes.filter((change: { type: string; id: string; }) => {
                 if (change.type === 'remove') {
                     const node = nodes.find(n => n.id === change.id);
                     if (node && (node.type === 'START' || node.type === 'END')) {
@@ -462,51 +254,194 @@ export default function FamilyTreeApp() {
         [onNodesChange, nodes]
     );
 
-    return (
-        <div style={{
-            width: '100vw',
-            height: '100vh',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}>
-            <div style={{
-                position: 'absolute',
-                top: 20,
-                left: 20,
-                zIndex: 4,
-                background: 'rgba(255, 255, 255, 0.95)',
-                padding: '15px 25px',
-                borderRadius: '12px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-            }}>
-                <h1 style={{
-                    margin: 0,
-                    fontSize: '24px',
-                    fontWeight: '700',
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                }}>
-                    🌳 Family Tree Visualization
-                </h1>
-                <p style={{
-                    margin: '5px 0 0 0',
+    // Drag and drop handlers for React Flow
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('application/reactflow');
+        if (!type) return;
+
+        const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+        const position = reactFlowBounds
+            ? {
+                x: event.clientX - reactFlowBounds.left,
+                y: event.clientY - reactFlowBounds.top,
+            }
+            : { x: 250, y: 250 };
+
+        let newNode: Node;
+        let nodeId = `dnd_${+new Date()}`;
+
+        if (type === 'view') {
+            newNode = {
+                id: nodeId,
+                type: 'VIEW',
+                position,
+                data: { label: 'View Node', html: '' },
+                style: {
+                    background: '#e3f2fd',
+                    border: '2px solid #1976d2',
+                    borderRadius: '10px',
                     fontSize: '14px',
-                    color: '#666',
-                    fontWeight: '500',
-                }}>
-                    Interactive family tree with React Flow
-                </p>
-            </div>
+                    fontWeight: 'bold',
+                    padding: '10px',
+                    width: 160,
+                },
+            };
+            setEditTitle('View Node');
+            setEditHtml('');
+            setEditType('view');
+        } else if (type === 'DECISION') {
+            newNode = {
+                id: nodeId,
+                type: 'DECISION',
+                position,
+                data: { label: 'Decision Node', choices: [''] },
+                style: {
+                    background: '#fff3e0',
+                    border: '2px solid #ff9800',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    padding: '10px',
+                    width: 160,
+                },
+            };
+            setEditTitle('Decision Node');
+            setEditConditions(['']);
+            setEditType('DECISION');
+        } else {
+            return;
+        }
+
+        setNodes((nds) => nds.concat(newNode));
+        setSelectedNode(newNode);
+        setEditModalOpen(true);
+    }, [setNodes]);
+
+    // Node selection handler
+    const onNodeClick = useCallback((_event: any, node: SetStateAction<Node | null>) => {
+        setSelectedNode(node);
+        // right sidebar always visible, just set selected node
+    }, []);
+
+
+
+    // Delete node handler
+    const handleDeleteNode = useCallback(() => {
+        if (selectedNode) {
+            setNodes((nds) => nds.filter(n => n.id !== selectedNode.id));
+            setSelectedNode(null);
+            // setRightSidebarCollapsed(true);
+        }
+    }, [selectedNode, setNodes]);
+
+    const handleSave = useCallback(async () => {
+        const updatedNode = nodes.map(item=> {
+            const targetNode = edges.filter(edge => edge.source === item.id)?.[0]?.target;
+            return {
+                "id": item.id,
+                "nodeName": item.data.label,
+                "nextNode": targetNode,
+                "type": item.type,
+                "position": item.position,
+                "data": item.data
+            };
+        });
+        const response = await fetch('/api/family-tree', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'save',
+                nodes,
+                edges,
+                updatedNode
+            }),
+        });
+        const result = await response.json();
+        if (result.success) {
+            setNotification('💾 Family tree saved successfully!');
+        } else {
+            setNotification('❌ Error saving family tree.');
+        }
+        setTimeout(() => setNotification(null), 3000);
+    }, [nodes, edges]);
+
+    // Edit node handler (open modal and prepopulate)
+
+    const handleEditNode = useCallback(() => {
+        if (selectedNode) {
+            setEditTitle(selectedNode.data?.label || '');
+            setEditModalOpen(true);
+        }
+    }, [selectedNode]);
+    // Save edited node title
+    const handleEditSave = useCallback(() => {
+        if (selectedNode) {
+            setNodes(nds =>
+                nds.map(n => {
+                    if (n.id !== selectedNode.id) return n;
+                    if (editType === 'view') {
+                        return {
+                            ...n,
+                            data: { ...n.data, label: editTitle, transientData: editHtml }
+                        };
+                    }
+                    if (editType === 'DECISION') {
+                        return {
+                            ...n,
+                            data: { ...n.data, label: editTitle, choices: editConditions }
+                        };
+                    }
+                    return { ...n, data: { ...n.data, label: editTitle } };
+                })
+            );
+            setEditModalOpen(false);
+        }
+    }, [selectedNode, editTitle, editHtml, editConditions, editType, setNodes]);
+
+
+    return (
+        <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+            <Sidebar />
+            <RightSidebar
+                selectedNode={selectedNode}
+                onEdit={() => {
+                    if (selectedNode) {
+                        setEditTitle(selectedNode.data?.label || '');
+                        setEditHtml(selectedNode.data?.transientData || '');
+                        setEditConditions(selectedNode.data?.choices || ['']);
+                        setEditType(selectedNode.type === 'DECISION' ? 'DECISION' : 'view');
+                        setEditModalOpen(true);
+                    }
+                }}
+                onDelete={handleDeleteNode}
+            />
+
+            {/* Edit Modal */}
+            <EditNodeModal
+                open={editModalOpen}
+                editType={editType}
+                editTitle={editTitle}
+                setEditTitle={setEditTitle}
+                editHtml={editHtml}
+                setEditHtml={setEditHtml}
+                editConditions={editConditions}
+                setEditConditions={setEditConditions}
+                onClose={() => setEditModalOpen(false)}
+                onSave={handleEditSave}
+            />
 
             {/* Notification */}
             {notification && (
                 <div style={{
                     position: 'absolute',
                     top: 20,
-                    right: 20,
+                    right: 60,
                     zIndex: 5,
                     background: 'rgba(76, 175, 80, 0.95)',
                     color: 'white',
@@ -522,40 +457,42 @@ export default function FamilyTreeApp() {
                 </div>
             )}
 
-            <ReactFlow
-                nodes={updatedNodes}
-                edges={edges}
-                onNodesChange={onNodesChangeFiltered}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                nodeTypes={nodeTypes}
-                fitView
-                style={{
-                    background: 'transparent',
-                }}
+            <div
+                ref={reactFlowWrapper}
+                style={{ width: '100vw', height: '100vh', marginLeft: 180, marginRight: 240 }}
             >
-                <Controls
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                    }}
-                />
-                <MiniMap
-                    style={{
-                        background: 'rgba(255, 255, 255, 0.9)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                    }}
-                    maskColor="rgba(100, 116, 234, 0.1)"
-                />
-                <Background
-                    gap={20}
-                    size={1}
-                    color="rgba(255, 255, 255, 0.3)"
-                />
-            </ReactFlow>
-            <button>Save</button>
+                <ReactFlow
+                    nodes={updatedNodes}
+                    edges={edges}
+                    onNodesChange={onNodesChangeFiltered}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    style={{ background: 'transparent' }}
+                    onDrop={onDrop}
+                    onDragOver={onDragOver}
+                    onNodeClick={onNodeClick}
+                >
+                    <Controls
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                        }}
+                    />
+                    <MiniMap
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+                        }}
+                        maskColor="rgba(100, 116, 234, 0.1)"
+                    />
+                    <Background gap={20} size={1} color="rgba(255, 255, 255, 0.3)" />
+                </ReactFlow>
+            </div>
+            <BottomBar onSave={handleSave} />
         </div>
     );
 }
