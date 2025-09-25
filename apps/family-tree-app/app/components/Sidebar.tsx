@@ -23,7 +23,7 @@ const Sidebar = () => (
         <div
             draggable
             onDragStart={e => {
-                e.dataTransfer.setData('application/reactflow', 'view');
+                e.dataTransfer.setData('application/reactflow', 'VIEW');
                 e.dataTransfer.effectAllowed = 'move';
             }}
             style={{

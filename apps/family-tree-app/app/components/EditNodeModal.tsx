@@ -73,7 +73,7 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
                     letterSpacing: 0.2,
                     textAlign: 'left',
                 }}>
-                    Edit {editType === 'view' ? 'View Node' : 'Decision Node'}
+                    Edit {editType === 'VIEW' ? 'View Node' : 'Decision Node'}
                 </h3>
                 <label style={{ fontWeight: 500, color: '#333', fontSize: 15 }}>
                     Title:
@@ -94,7 +94,7 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
                         }}
                     />
                 </label>
-                {editType === 'view' && (
+                {editType === 'VIEW' && (
                     <label style={{ fontWeight: 500, color: '#333', fontSize: 15 }}>
                         HTML Content:
                         <textarea

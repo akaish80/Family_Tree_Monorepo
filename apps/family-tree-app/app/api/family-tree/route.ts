@@ -1,205 +1,81 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";import { MongoClient, ObjectId } from "mongodb";
 
-interface DynamicMember {
-    id: string;
-    name: string;
-    timestamp: string;
-}
+const MONGO_URL = "mongodb://127.0.0.1:27017";
+const DB_NAME = "familyTree";
+const COLLECTION = "configurations";
 
-interface FamilyTreeData {
-    startNode: string;
-    nodes: any[];
-    edges: any[];
-    dynamicMembers: DynamicMember[];
-    updatedNode?: any[] | null;
-}
-
-// In-memory storage for demo (in production, use a database)
-let familyTreeData: FamilyTreeData = {
-    startNode: "1",
-    nodes: [
-        {
-            id: "1",
-            nodeName: "1",
-            nextNode: "2",
-            type: "START",
-            position: { x: 250, y: 25 },
-            data: {
-                label: "START",
-            },
-        },
-        {
-            id: "2",
-            nodeName: "2",
-            type: "DECISION",
-            position: { x: 100, y: 125 },
-            data: {
-                choices: [
-                    {
-                        nextNode: "3",
-                        expression: 'type:queryParam~key:tenant~value:test',
-                    },
-                    {
-                        nextNode: "4",
-                        expression: "DEFAULT",
-                    },
-                ],
-            },
-        },
-        {
-            id: "3",
-            nodeName: "3",
-            type: "VIEW",
-            position: { x: 100, y: 125 },
-            data: {
-                label: "param-node",
-                transientData: "Found in Query Param",
-            },
-        },
-        {
-            id: "4",
-            nodeName: "4",
-            type: "VIEW",
-            position: { x: 100, y: 125 },
-            data: {
-                label: "no-param-node",
-                transientData: "Value without queryparam",
-            },
-        },
-        {
-            id: "5",
-            type: "END",
-            position: { x: 500, y: 350 },
-            data: {
-                label: "End",
-            },
-            style: {
-                background: "#f3e5f5",
-                border: "2px solid #7b1fa2",
-                borderRadius: "10px",
-                fontSize: "14px",
-                fontWeight: "bold",
-                padding: "10px",
-                width: 140,
-            },
-        },
-    ],
-    edges: [
-        { id: "e1-2", source: "1", target: "2" },
-        { id: "e2-3", source: "2", target: "3" },
-        { id: "e2-4", source: "2", target: "4" },
-        { id: "e3-5", source: "3", target: "5" },
-        { id: "e4-5", source: "4", target: "5" },
-    ],
-    // Track dynamic members added by users
-    dynamicMembers: [],
-};
-
-export async function GET() {
-    const response = NextResponse.json({
-        ...familyTreeData,
-        // Include dynamic members in the response
-        dynamicMembers: familyTreeData.dynamicMembers,
-    });
-
-    // Add CORS headers
+function withCORS(response: Response) {
     response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set(
-        "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS"
-    );
-    response.headers.set(
-        "Access-Control-Allow-Headers",
-        "Content-Type, Authorization"
-    );
-
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return response;
 }
 
-export async function POST(request: Request) {
-    try {
-        const body = await request.json();
-
-        // Handle saving the entire tree
-        if (body.action === "save" && body.nodes && body.edges) {
-            familyTreeData.nodes = body.nodes;
-            familyTreeData.edges = body.edges;
-            familyTreeData.startNode = body.startNode || familyTreeData.startNode;
-            familyTreeData.updatedNode = body.updatedNode || null;
-
-            const response = NextResponse.json({
-                success: true,
-                message: "Family tree updated successfully",
-                nodes: familyTreeData.nodes,
-                edges: familyTreeData.edges,
-            });
-
-            // Add CORS headers
-            response.headers.set("Access-Control-Allow-Origin", "*");
-            response.headers.set(
-                "Access-Control-Allow-Methods",
-                "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            response.headers.set(
-                "Access-Control-Allow-Headers",
-                "Content-Type, Authorization"
-            );
-
-            return response;
-        }
-
-
-        if (body.action === "add" && body.node) {
-            // Add new family member to dynamic members
-            const newMember = {
-                id: body.node.id,
-                name: body.node.name,
-                timestamp: new Date().toISOString(),
-            };
-
-            // Add to dynamic members array
-            familyTreeData.dynamicMembers.push(newMember);
-
-            const response = NextResponse.json({
-                success: true,
-                message: "Family member added successfully",
-                member: newMember,
-                totalDynamicMembers: familyTreeData.dynamicMembers.length,
-            });
-
-            // Add CORS headers
-            response.headers.set("Access-Control-Allow-Origin", "*");
-            response.headers.set(
-                "Access-Control-Allow-Methods",
-                "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            response.headers.set(
-                "Access-Control-Allow-Headers",
-                "Content-Type, Authorization"
-            );
-
-            return response;
-        }
-
-        return NextResponse.json(
-            { success: false, message: "Invalid request" },
-            { status: 400 }
-        );
-    } catch (error) {
-        return NextResponse.json(
-            { success: false, message: "Server error" },
-            { status: 500 }
-        );
+async function getCollection() {
+    const client = await MongoClient.connect(MONGO_URL);
+    const db = client.db(DB_NAME);
+    const collections = await db.listCollections({ name: COLLECTION }).toArray();
+    if (collections.length === 0) {
+        await db.createCollection(COLLECTION);
     }
+    return db.collection(COLLECTION);
 }
 
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 200,
-        headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        },
+export async function GET(request: Request) {
+    const url = new URL(request.url);
+    const configId = url.searchParams.get("configId") || "default";
+    // const config = configurations[configId];
+     if (!configId) {
+        return NextResponse.json({ success: false, message: "No configId provided" }, { status: 400 });
+    }
+     const collection = await getCollection();
+   let config;
+    try {
+        config = await collection.findOne({ _id: new ObjectId(configId) });
+    } catch (err) {
+        return withCORS(NextResponse.json({ success: false, message: "Invalid configId" }, { status: 400 }));
+    }
+    if (!config) {
+        return withCORS(NextResponse.json({ success: false, message: "Configuration not found" }, { status: 404 }));
+    }
+    const res = NextResponse.json({
+        id: config._id.toString(),
+        name: config.name,
+        startNode: config.startNode,
+        nodes: JSON.parse(config.nodes),
+        edges: JSON.parse(config.edges),
+        updateNode: JSON.parse(config.updatedNode || "{}"),
+        dynamicMembers: config.dynamicMembers,
     });
+    return withCORS(res);
+    // return NextResponse.json();
+}
+
+// POST: Update application flow for a configuration
+export async function POST(request: Request) {
+    const url = new URL(request.url);
+    const configId = url.searchParams.get("configId");
+    if (!configId) {
+        return NextResponse.json({ success: false, message: "No configId provided" }, { status: 400 });
+    }
+    const body = await request.json();
+    const collection = await getCollection();
+    const update: { [key: string]: any } = {};
+    if (body.nodes) update["nodes"] = JSON.stringify(body.nodes);
+    if (body.edges) update["edges"] = JSON.stringify(body.edges);
+    if (body.startNode) update["startNode"] = body.startNode;
+    if (body.updatedNode) update["updatedNode"] = JSON.stringify(body.updatedNode);
+    if (body.dynamicMembers) update["dynamicMembers"] = body.dynamicMembers;
+    await collection.updateOne(
+        { _id: new ObjectId(configId) },
+        { $set: update }
+    );
+    const res = NextResponse.json({ success: true, message: "Configuration updated" });
+    return withCORS(res);
+    // return NextResponse.json({ success: true, message: "Configuration updated" });
+}
+
+
+export async function OPTIONS() {
+    return withCORS(new Response(null, { status: 200 }));
 }

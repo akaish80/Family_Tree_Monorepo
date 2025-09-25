@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'next/navigation';
 
 interface FamilyTreeNode {
     id: string;
@@ -35,6 +36,9 @@ interface DynamicMember {
 }
 
 export default function HTMLViewer() {
+    const searchParams = useSearchParams();
+    const configId = searchParams.get("configId");
+
     const [familyTreeData, setFamilyTreeData] = useState<FamilyTreeData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -134,7 +138,7 @@ export default function HTMLViewer() {
     useEffect(() => {
         const parseFamilyTreeData = (data: any): any => {
             debugger;
-            const responseNode = data.updatedNode || data.nodes
+            const responseNode = data.updateNode || data.updatedNode || data.nodes
             const nodeConfig = responseNode.find((node: any) => node.id === data.startNode)
             let nextNode: string | null = nodeConfig.nextNode
 
@@ -164,9 +168,16 @@ export default function HTMLViewer() {
         const fetchFamilyTreeData = async () => {
             try {
                 // Fetch data from the family-tree-app API
-                const response = await axios.get('http://localhost:3000/api/family-tree');
+                let response;
+                if (configId) {
+                    // Fetch data for specific configId
+                    response = await axios.get(`http://localhost:3000/api/family-tree?configId=${configId}`);
+                } else {
+                    // Fetch default/single tree
+                    response = await axios.get('http://localhost:3000/api/family-tree/single-tree');
+                }
                 setFamilyTreeData(response.data);
-                parseFamilyTreeData(response.data)
+                parseFamilyTreeData(response.data);
                 setLoading(false);
                 setError(null);
                 setLastFetchTime(new Date().toLocaleTimeString());
@@ -270,7 +281,7 @@ export default function HTMLViewer() {
     const manualRefresh = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost:3000/api/family-tree');
+            const response = await axios.get('http://localhost:3000/api/family-tree/single-tree');
             setFamilyTreeData(response.data);
             setLoading(false);
             setError(null);

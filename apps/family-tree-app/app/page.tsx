@@ -276,7 +276,7 @@ export default function FamilyTreeApp() {
         let newNode: Node;
         let nodeId = `dnd_${+new Date()}`;
 
-        if (type === 'view') {
+        if (type === 'VIEW') {
             newNode = {
                 id: nodeId,
                 type: 'VIEW',
@@ -294,7 +294,7 @@ export default function FamilyTreeApp() {
             };
             setEditTitle('View Node');
             setEditHtml('');
-            setEditType('view');
+            setEditType('VIEW');
         } else if (type === 'DECISION') {
             newNode = {
                 id: nodeId,
@@ -352,7 +352,7 @@ export default function FamilyTreeApp() {
                 "data": item.data
             };
         });
-        const response = await fetch('/api/family-tree', {
+        const response = await fetch('/api/family-tree/single-tree', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -381,11 +381,12 @@ export default function FamilyTreeApp() {
     }, [selectedNode]);
     // Save edited node title
     const handleEditSave = useCallback(() => {
+        console.log(selectedNode)
         if (selectedNode) {
             setNodes(nds =>
                 nds.map(n => {
                     if (n.id !== selectedNode.id) return n;
-                    if (editType === 'view') {
+                    if (editType === 'VIEW') {
                         return {
                             ...n,
                             data: { ...n.data, label: editTitle, transientData: editHtml }
@@ -415,7 +416,7 @@ export default function FamilyTreeApp() {
                         setEditTitle(selectedNode.data?.label || '');
                         setEditHtml(selectedNode.data?.transientData || '');
                         setEditConditions(selectedNode.data?.choices || ['']);
-                        setEditType(selectedNode.type === 'DECISION' ? 'DECISION' : 'view');
+                        setEditType(selectedNode.type === 'DECISION' ? 'DECISION' : 'VIEW');
                         setEditModalOpen(true);
                     }
                 }}

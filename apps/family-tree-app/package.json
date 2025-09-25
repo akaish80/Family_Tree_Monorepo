@@ -15,7 +15,8 @@
         "next": "^15.4.2",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
-        "reactflow": "^11.10.4"
+        "reactflow": "^11.10.4",
+        "sass": "^1.93.0"
     },
     "devDependencies": {
         "@repo/eslint-config": "*",

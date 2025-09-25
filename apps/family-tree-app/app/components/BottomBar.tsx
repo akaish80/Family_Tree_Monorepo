@@ -1,9 +1,10 @@
 type BottomBarProps = {
   onSave?: () => void;
+  onPreview?: () => void;
   onReset?: () => void;
 };
 
-const BottomBar = ({ onSave, onReset }: BottomBarProps) => (
+const BottomBar = ({ onSave, onPreview, onReset }: BottomBarProps) => (
   <div
     style={{
       position: 'fixed',
@@ -53,6 +54,24 @@ const BottomBar = ({ onSave, onReset }: BottomBarProps) => (
       onClick={onSave}
     >
       Save
+    </button>
+    
+    <button 
+      style={{
+        padding: '10px 32px',
+        background: '#a25c4bff',
+        color: '#fff',
+        border: 'none',
+        borderRadius: 6,
+        marginLeft: 16,
+        fontWeight: 600,
+        fontSize: 16,
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(118,75,162,0.08)'
+      }}
+      onClick={onPreview}
+    >
+      Preview
     </button>
   </div>
 );
