@@ -38,6 +38,7 @@ interface DynamicMember {
 export default function HTMLViewer() {
     const searchParams = useSearchParams();
     const configId = searchParams.get("configId");
+    const flowId = searchParams.get("flowId");
 
     const [familyTreeData, setFamilyTreeData] = useState<FamilyTreeData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -48,6 +49,9 @@ export default function HTMLViewer() {
     const [htmlOutut, setHtmlOutput] = useState('')
     const [currentViewNode, setCurrentViewNode] = useState(null)
     const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+
+    // If both configId and flowId are provided, suggest the new route
+    const shouldUseNewRoute = configId && flowId;
 
 
     function parseKeyValuePair(str: string): Record<string, string> {
@@ -97,39 +101,39 @@ export default function HTMLViewer() {
         return null
     }
 
-    const decisionMaker = (nodeConfig: any, nextNode: string | null, nodes:any) => {
+    const decisionMaker = (nodeConfig: any, nextNode: string | null, nodes: any) => {
         let newNode: string | null = nextNode;
-            switch (nodeConfig.type) {
-                case 'DECISION':
-                    setCurrentViewNode(null)
-                    const choiceResult = handleDecisionNode(nodeConfig)
-                    if (choiceResult === null) {
-                        return choiceResult
-                    }
-                    newNode = choiceResult
-                    break;
-                case 'VIEW':
-                    setCurrentNodeId(nodeConfig.id)
-                    setCurrentViewNode(nodeConfig)
-                    newNode = null
-                    break;
-                case 'END':
-                    setCurrentViewNode(null)
-                    newNode = null
-                    break;
+        switch (nodeConfig.type) {
+            case 'DECISION':
+                setCurrentViewNode(null)
+                const choiceResult = handleDecisionNode(nodeConfig)
+                if (choiceResult === null) {
+                    return choiceResult
+                }
+                newNode = choiceResult
+                break;
+            case 'VIEW':
+                setCurrentNodeId(nodeConfig.id)
+                setCurrentViewNode(nodeConfig)
+                newNode = null
+                break;
+            case 'END':
+                setCurrentViewNode(null)
+                newNode = null
+                break;
 
-            }
+        }
 
-            // const nextNewNode = data.nodes.find((node: any) => node.nodeName === nextNode)
-            // // setHtmlOutput()
-            // if (nextNewNode?.type === 'DATA') {
-            //     setHtmlOutput(nextNewNode.data.transientData)
-            // }
-            if (newNode !== null){
-                //   if (!familyTreeData || !currentNodeId) return;
-                // const edge = familyTreeData?.edges?.find(e => e.source === newNode);
-                const node = nodes.find(e => e.id === newNode);
-                decisionMaker(node, node?.nextNode || null, nodes)
+        // const nextNewNode = data.nodes.find((node: any) => node.nodeName === nextNode)
+        // // setHtmlOutput()
+        // if (nextNewNode?.type === 'DATA') {
+        //     setHtmlOutput(nextNewNode.data.transientData)
+        // }
+        if (newNode !== null) {
+            //   if (!familyTreeData || !currentNodeId) return;
+            // const edge = familyTreeData?.edges?.find(e => e.source === newNode);
+            const node = nodes.find(e => e.id === newNode);
+            decisionMaker(node, node?.nextNode || null, nodes)
 
             return newNode
         }
@@ -216,8 +220,8 @@ export default function HTMLViewer() {
     };
 
     const goToNextNode = () => {
-        
-        if (!familyTreeData ) return;
+
+        if (!familyTreeData) return;
         const nextNode = currentViewNode?.id
         const nodes = familyTreeData?.updatedNode || familyTreeData?.nodes
         const edge = familyTreeData?.edges?.find(e => e.source === nextNode);
@@ -230,7 +234,7 @@ export default function HTMLViewer() {
     }
 
 
-      const renderViewNodePage = (node: FamilyTreeNode) => (
+    const renderViewNodePage = (node: FamilyTreeNode) => (
         <div style={{
             background: 'white',
             borderRadius: '16px',
@@ -353,10 +357,10 @@ export default function HTMLViewer() {
                     </strong>
                 </div>
                 {/* {node.children && node.children.length > 0 && (
-          <div style={{ marginTop: '15px' }}>
-            {node.children.map((child: any) => renderNode(child, depth + 1))}
-          </div>
-        )} */}
+ <div style={{ marginTop: '15px' }}>
+ {node.children.map((child: any) => renderNode(child, depth + 1))}
+ </div>
+ )} */}
             </div>
         );
 
@@ -398,7 +402,7 @@ export default function HTMLViewer() {
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
                     }}>
-                        📊 Family Tree HTML Viewer
+                        📊Family Tree HTML Viewer
                     </h1>
                     <p style={{
                         color: '#666',
@@ -408,6 +412,51 @@ export default function HTMLViewer() {
                     }}>
                         Beautiful HTML representation of your family tree data
                     </p>
+
+                    {/* New Route Suggestion */}
+                    {shouldUseNewRoute && (
+                        <div style={{
+                            marginTop: '20px',
+                            padding: '20px',
+                            backgroundColor: '#e3f2fd',
+                            border: '2px solid #2196f3',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 12px rgba(33, 150, 243, 0.15)',
+                            marginBottom: '20px',
+                        }}>
+                            <h3 style={{
+                                color: '#1976d2',
+                                margin: '0 0 10px 0',
+                                fontSize: '18px',
+                                fontWeight: '600',
+                            }}>
+                                🚀 Enhanced Flow Viewer Available!
+                            </h3>
+                            <p style={{
+                                color: '#1565c0',
+                                margin: '0 0 15px 0',
+                                fontSize: '14px',
+                            }}>
+                                For better flow rendering with configId and flowId, use our new route-based viewer:
+                            </p>
+                            <a
+                                href={`/${configId}/${flowId}`}
+                                style={{
+                                    display: 'inline-block',
+                                    padding: '10px 20px',
+                                    backgroundColor: '#2196f3',
+                                    color: 'white',
+                                    textDecoration: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    boxShadow: '0 2px 8px rgba(33, 150, 243, 0.3)',
+                                }}
+                            >
+                                🔗 Open Flow Viewer: {configId}/{flowId}
+                            </a>
+                        </div>
+                    )}
 
                     {/* Polling Controls */}
                     <div style={{
@@ -435,7 +484,7 @@ export default function HTMLViewer() {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                             }}
                         >
-                            {isPolling ? '⏸️ Stop Auto-refresh' : '▶️ Start Auto-refresh'}
+                            {isPolling ? '⏸️Stop Auto-refresh' : '▶️ Start Auto-refresh'}
                         </button>
 
                         <button
@@ -456,7 +505,7 @@ export default function HTMLViewer() {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                             }}
                         >
-                            {loading ? '⏳ Loading...' : '🔄 Refresh Now'}
+                            {loading ? '⏳Loading...' : '🔄Refresh Now'}
                         </button>
 
                         {lastFetchTime && (
@@ -482,7 +531,7 @@ export default function HTMLViewer() {
                             color: isPolling ? '#2e7d32' : '#f57c00',
                             fontWeight: '500',
                         }}>
-                            {isPolling ? '🟢 Live Updates ON' : '🟡 Live Updates OFF'}
+                            {isPolling ? '🟢Live Updates ON' : '🟡Live Updates OFF'}
                         </div>
                     </div>
                 </div>
@@ -515,7 +564,7 @@ export default function HTMLViewer() {
                             Loading family tree data...
                         </div>
                     )}
-                           
+
 
                     {error && (
                         <div style={{
@@ -646,7 +695,7 @@ export default function HTMLViewer() {
                                         color: '#495057',
                                         borderBottom: '1px solid #dee2e6',
                                     }}>
-                                        🔍 View Raw JSON Data
+                                        🔍View Raw JSON Data
                                     </summary>
                                     <pre style={{
                                         backgroundColor: '#f8f9fa',
@@ -676,7 +725,7 @@ export default function HTMLViewer() {
                     borderRadius: '12px',
                 }}>
                     <p style={{ margin: '0 0 10px 0', fontSize: '16px' }}>
-                        🔗 This HTML viewer fetches data from the React Flow family tree app running on port 3000.
+                        🔗This HTML viewer fetches data from the React Flow family tree app running on port 3000.
                     </p>
                     <p style={{ margin: '0 0 10px 0', fontSize: '14px' }}>
                         Make sure to start both applications with: <code style={{
@@ -689,8 +738,8 @@ export default function HTMLViewer() {
                     </p>
                     <p style={{ margin: '0', fontSize: '12px', color: '#8e8e8e' }}>
                         {isPolling
-                            ? '⚡ Auto-refresh every 5 seconds when tab is active'
-                            : '⏸️ Auto-refresh is paused - use manual refresh to update data'
+                            ? '⚡Auto-refresh every 5 seconds when tab is active'
+                            : '⏸️Auto-refresh is paused - use manual refresh to update data'
                         }
                     </p>
                 </div>
@@ -698,12 +747,7 @@ export default function HTMLViewer() {
 
             </div>
 
-            <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+           
         </div>
     );
 }

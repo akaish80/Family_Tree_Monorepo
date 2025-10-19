@@ -25,11 +25,12 @@ let configurations: Record<string, any> = globalThis.configurations || (globalTh
 
 export async function GET() {
     const collection = await getCollection();
-    const configs = await collection.find({}, { projection: { name: 1 } }).toArray();
+    const configs = await collection.find({}, { projection: { name: 1, id: 2 } }).toArray();
     // Return id and name for listing
+    console.log(configs)
     const configList = configs.map(cfg => ({
-        id: cfg._id.toString(),
-        name: cfg.name,
+        id: cfg.id.toString(),
+        name: cfg.name
     }));
     return NextResponse.json(configList);
 

@@ -1,0 +1,476 @@
+/* Canvas Editor Enhanced Styles using SCSS */
+
+// Color variables
+$primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$background-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 25%, #4facfe 50%, #00f2fe 100%);
+$glass-bg: rgba(255, 255, 255, 0.9);
+$glass-border: rgba(255, 255, 255, 0.2);
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$accent-color: #4f46e5;
+
+// Mixins
+@mixin glass-effect($opacity: 0.9) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+}
+
+@mixin gradient-text($gradient: $primary-gradient) {
+  background: $gradient;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@mixin floating-animation {
+  animation: float 3s ease-in-out infinite;
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+}
+
+@mixin pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
+// Main container
+.canvasEditorContainer {
+  height: 100vh;
+  overflow: hidden;
+  background: $background-gradient;
+  animation: gradientShift 8s ease infinite;
+  background-size: 400% 400%;
+  display: flex;
+  flex-direction: column;
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
+
+// Content wrapper to contain the main content area
+.contentWrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+// Loading states
+.loadingContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loadingContent {
+  text-align: center;
+}
+
+.spinner {
+  display: inline-block;
+  width: 4rem;
+  height: 4rem;
+  border: 4px solid white;
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+.loadingTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.loadingSubtitle {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loadingDots {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 1rem;
+}
+
+.pulseDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: white;
+  border-radius: 50%;
+  @include pulse-animation;
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+// Header section
+.headerGlass {
+  @include glass-effect(0.9);
+  border-bottom: 1px solid $glass-border;
+  padding: 1.5rem;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 100%;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.headerTitleSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.floatingBadge {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: $primary-gradient;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+  @include floating-animation;
+
+  &.large {
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    margin: 0 auto 2rem;
+  }
+}
+
+.gradientText {
+  font-size: 1.875rem;
+  font-weight: 700;
+  @include gradient-text;
+}
+
+// Status section
+.statusSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  @include glass-effect(0.6);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+}
+
+.statusDot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  @include pulse-animation;
+
+  &.green {
+    background: #10b981;
+  }
+
+  &.blue {
+    background: #3b82f6;
+  }
+}
+
+.statusLabel {
+  font-weight: 600;
+  color: $text-primary;
+}
+
+.statusValue {
+  font-weight: 700;
+  color: $accent-color;
+
+  &.purple {
+    color: #7c3aed;
+  }
+}
+
+// Header buttons
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.glassButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  @include glass-effect(0.6);
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-decoration: none;
+  color: $text-primary;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(31, 38, 135, 0.25);
+
+    .backIcon {
+      transform: translateX(-0.25rem);
+    }
+  }
+}
+
+.backIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  transition: transform 0.3s ease;
+}
+
+// Main content layout
+.mainContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+// Panel styles
+.toolboxPanel,
+.propertyPanel {
+  width: 20rem;
+  @include glass-effect(0.95);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+  }
+}
+
+.toolboxPanel {
+  border-right: 1px solid rgba(229, 231, 235, 0.5);
+  box-shadow: 25px 0 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.propertyPanel {
+  border-left: 1px solid rgba(229, 231, 235, 0.5);
+  box-shadow: -25px 0 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.panelHeader,
+.propertyPanelHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid $glass-border;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+}
+
+.panelTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: $text-primary;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.panelIcon,
+.propertyPanelIcon {
+  width: 2rem;
+  height: 2rem;
+  background: $primary-gradient;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.propertyPanelIcon {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.panelSubtitle {
+  font-size: 0.875rem;
+  color: $text-secondary;
+}
+
+.panelContent {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+// Canvas area
+.canvasArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvasWorkspace {
+  flex: 1;
+  background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 40% 80%, rgba(120, 198, 121, 0.1) 0%, transparent 50%),
+              linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 2rem;
+  overflow: auto;
+}
+
+.canvasFrame {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+              0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 750px;
+  padding: 2.5rem;
+
+  &:hover {
+    box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.35),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+// Empty state
+.emptyState {
+  text-align: center;
+  color: $text-secondary;
+  margin-top: 10rem;
+}
+
+.emptyStateTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin-bottom: 1rem;
+}
+
+.emptyStateSubtitle {
+  font-size: 1.25rem;
+  color: $text-secondary;
+  margin-bottom: 1.5rem;
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.bounceDots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.bounceDot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  animation: bounce 1s ease infinite;
+
+  &.indigo {
+    background: #6366f1;
+  }
+
+  &.purple {
+    background: #8b5cf6;
+    animation-delay: 0.1s;
+  }
+
+  &.blue {
+    background: #3b82f6;
+    animation-delay: 0.2s;
+  }
+
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+}
+
+// Footer
+.footerEnhanced {
+  @include glass-effect(0.9);
+  border-top: 1px solid $glass-border;
+  box-shadow: 0 -8px 32px rgba(31, 38, 135, 0.15);
+}
