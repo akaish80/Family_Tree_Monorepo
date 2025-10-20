@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { configid } = await params;
-    console.log('Arun1 -> '+ configid);
+    // console.log('Arun1 -> '+ configid);
     const configId = configid;
     
     await client.connect();

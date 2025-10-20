@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
         
     const configId = searchParams.get('configId') 
     const flowId = searchParams.get('flowId');
-        console.log('Arun3 -> '+ flowId)
+        // console.log('Arun3 -> '+ flowId)
 
     await client.connect();
     const db = client.db('familyTree');

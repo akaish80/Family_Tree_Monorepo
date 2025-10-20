@@ -19,6 +19,12 @@ interface AppFlow {
   createdAt: string;
 }
 
+interface FormData {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export default function FlowLandingPage() {
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
   const [appFlows, setAppFlows] = useState<AppFlow[]>([]);
@@ -27,7 +33,7 @@ export default function FlowLandingPage() {
   const [loading, setLoading] = useState(true);
   const [flowsLoading, setFlowsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState<FormData>({ id: "", name: "", description: "" });
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -67,7 +73,14 @@ export default function FlowLandingPage() {
       const response = await fetch(`/api/family-tree/flows?configId=${configId}`);
       if (response.ok) {
         const data = await response.json();
-        setAppFlows(data.flows || []);
+        console.log('Fetched flows data:', data);
+        // Ensure flows is an array and each flow has required properties
+        const validFlows = (data.flows || []).filter((flow: any) => {
+          console.log('Validating flow:', flow);
+          return flow && typeof flow === 'object' && flow.id && flow.flowName;
+        });
+        console.log('Valid flows:', validFlows);
+        setAppFlows(validFlows);
       } else {
         console.error('Failed to fetch app flows');
         setAppFlows([]);
@@ -81,21 +94,32 @@ export default function FlowLandingPage() {
   };
 
   const handleCreateAppFlow = async (e: React.FormEvent) => {
+    console.log('handleCreateAppFlow called', { formData, selectedConfigId });
     e.preventDefault();
     
     if (!formData.name.trim()) {
+      console.log('Validation failed: name is empty');
       showNotification('App flow name is required', 'error');
       return;
     }
 
     if (!selectedConfigId) {
+      console.log('Validation failed: no config selected');
       showNotification('Please select a configuration first', 'error');
       return;
     }
 
+    console.log('Setting submitting to true...');
     setSubmitting(true);
     
     try {
+      console.log('Making API request to /api/family-tree/flows with data:', {
+        id: formData.id.trim(),
+        flowName: formData.name.trim(),
+        description: formData.description.trim(),
+        configId: selectedConfigId,
+      });
+      
       const response = await fetch('/api/family-tree/flows', {
         method: 'POST',
         headers: {
@@ -108,22 +132,37 @@ export default function FlowLandingPage() {
           configId: selectedConfigId,
         }),
       });
+      
+      console.log('API response status:', response.status);
 
       if (response.ok) {
         const result = await response.json();
-        setAppFlows([...appFlows, result.flow]);
-        setFormData({ name: "", description: "" });
-        fetchAppFlows(selectedConfigId)
+        console.log('API response data:', result);
+        
+        // Validate the created flow before adding to state
+        if (result.flow && result.flow.id && result.flow.flowName) {
+          console.log('Adding flow to state:', result.flow);
+          setAppFlows([...appFlows, result.flow]);
+        } else {
+          console.log('Flow validation failed:', result);
+        }
+        
+        console.log('Resetting form and closing modal...');
+        setFormData({ id: "", name: "", description: "" });
+        fetchAppFlows(selectedConfigId);
         setShowModal(false);
         showNotification('App flow created successfully!', 'success');
       } else {
+        console.log('API request failed with status:', response.status);
         const error = await response.json();
+        console.log('Error response:', error);
         showNotification(error.error || 'Failed to create app flow', 'error');
       }
     } catch (error) {
-      showNotification('An error occurred while creating the app flow', 'error');
       console.error('Error creating app flow:', error);
+      showNotification('An error occurred while creating the app flow', 'error');
     } finally {
+      console.log('Setting submitting to false...');
       setSubmitting(false);
     }
   };
@@ -133,19 +172,45 @@ export default function FlowLandingPage() {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  const filteredAppFlows = appFlows.filter(flow =>
-    flow.flowName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    flow.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAppFlows = appFlows.filter(flow => {
+    // Ensure flow exists and has required properties
+    if (!flow || !flow.id) return false;
+    
+    // If no search term, include all valid flows
+    if (!searchTerm.trim()) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const flowName = (flow.flowName || '').toLowerCase();
+    const description = (flow.description || '').toLowerCase();
+    
+    return flowName.includes(searchLower) || description.includes(searchLower);
+  });
 
   const selectedConfiguration = configurations.find(config => config.id === selectedConfigId);
   const selectedFlow = appFlows.find(flow => flow.id === selectedFlowId);
+
+  // Spinner Component
+  const Spinner = ({ size = 'normal', className = '' }: { size?: 'normal' | 'large'; className?: string }) => (
+    <div className={`${styles.spinner} ${size === 'large' ? styles.largeSpinner : ''} ${className}`}></div>
+  );
+
+  // Loading Container Component
+  const LoadingContainer = ({ title, subtitle }: { title: string; subtitle?: string }) => (
+    <div className={styles.loadingContainer}>
+      <Spinner size="large" />
+      <p className={styles.loadingText}>{title}</p>
+      {subtitle && <p className={styles.loadingSubtext}>{subtitle}</p>}
+    </div>
+  );
 
   if (loading) {
     return (
       <div className={styles.wrapper}>
         <div className={styles.container}>
-          <div className={styles.loading}>Loading configurations...</div>
+          <LoadingContainer 
+            title="Loading Configurations..." 
+            subtitle="Please wait while we fetch your configurations"
+          />
         </div>
       </div>
     );
@@ -171,8 +236,14 @@ export default function FlowLandingPage() {
             value={selectedConfigId}
             onChange={(e) => setSelectedConfigId(e.target.value)}
             className={styles.dropdown}
+            disabled={configurations.length === 0}
           >
-            <option value="">-- Select Configuration --</option>
+            <option value="">
+              {configurations.length === 0 
+                ? "-- No configurations available --" 
+                : "-- Select Configuration --"
+              }
+            </option>
             {configurations.map((config) => (
               <option key={config.id} value={config.id}>
                 {config.name}
@@ -210,7 +281,10 @@ export default function FlowLandingPage() {
               <div className={styles.formGroup}>
                 <label className={styles.label}>Select App Flow:</label>
                 {flowsLoading ? (
-                  <div className={styles.loading}>Loading app flows...</div>
+                  <div className={styles.inlineSpinner}>
+                    <Spinner />
+                    Loading related flows...
+                  </div>
                 ) : (
                   <select
                     value={selectedFlowId}
@@ -221,7 +295,7 @@ export default function FlowLandingPage() {
                     <option value="">-- Select App Flow --</option>
                     {filteredAppFlows.map((flow) => (
                       <option key={flow.id} value={flow.id}>
-                        {flow.flowName} - {flow.description}
+                        {flow.flowName || 'Unnamed Flow'} - {flow.description || 'No description'}
                       </option>
                     ))}
                   </select>
@@ -229,16 +303,21 @@ export default function FlowLandingPage() {
               </div>
 
               {/* App Flow List */}
-              {filteredAppFlows.length > 0 && (
+              {flowsLoading ? (
+                <LoadingContainer 
+                  title="Loading App Flows..." 
+                  subtitle="Fetching flows for the selected configuration"
+                />
+              ) : filteredAppFlows.length > 0 ? (
                 <div className={styles.flowList}>
                   <h4 className={styles.listTitle}>Available App Flows:</h4>
                   {filteredAppFlows.map((flow) => (
                     <div key={flow.id} className={styles.flowItem}>
                       <div className={styles.flowInfo}>
-                        <h5>{flow.flowName}</h5>
+                        <h5>{flow.flowName || 'Unnamed Flow'}</h5>
                         <p>{flow.description || 'No description'}</p>
                         <span className={styles.flowDate}>
-                          Created: {new Date(flow.createdAt).toLocaleDateString()}
+                          Created: {flow.createdAt ? new Date(flow.createdAt).toLocaleDateString() : 'Unknown date'}
                         </span>
                       </div>
                       <Link href={`/flow/editor/${flow.id}/?configId=${selectedConfigId}`}>
@@ -247,9 +326,7 @@ export default function FlowLandingPage() {
                     </div>
                   ))}
                 </div>
-              )}
-
-              {!flowsLoading && filteredAppFlows.length === 0 && (
+              ) : (
                 <div className={styles.emptyState}>
                   <p>No app flows found for this configuration.</p>
                   <button
@@ -291,7 +368,12 @@ export default function FlowLandingPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateAppFlow} className={styles.form}>
+            <form 
+              onSubmit={handleCreateAppFlow} 
+              className={styles.form}
+              onInvalid={(e) => console.log('Form invalid:', e)}
+              onChange={(e) => console.log('Form changed:', e.target.value)}
+            >
               <div className={styles.formGroup}>
                 <label htmlFor="flowName">
                   App Flow Name *
@@ -300,7 +382,11 @@ export default function FlowLandingPage() {
                   type="text"
                   id="flowName"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value, id: e.target.value.replaceAll(' ', '_') })}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    name: e.target.value, 
+                    id: e.target.value.replace(/\s+/g, '_') 
+                  })}
                   placeholder="Enter app flow name"
                   className={styles.input}
                   required
@@ -333,7 +419,11 @@ export default function FlowLandingPage() {
                   type="submit"
                   disabled={submitting}
                   className={styles.saveButton}
+                  onClick={(e) => {
+                    console.log('Submit button clicked', { submitting, formData });
+                  }}
                 >
+                  {submitting && <Spinner />}
                   {submitting ? 'Creating...' : 'Save App Flow'}
                 </button>
               </div>

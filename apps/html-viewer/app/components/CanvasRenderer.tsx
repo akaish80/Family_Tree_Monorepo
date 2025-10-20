@@ -343,7 +343,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                         key={key}
                         type={buttonType}
                         style={getButtonStyle()}
-                        onClick={() => {
+                        onClick={(e) => {
                             // Execute custom onClick if defined
                             if (element.props?.onClick) {
                                 element.props.onClick();
@@ -352,12 +352,14 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                             // Handle different action types
                             switch (actionType) {
                                 case 'submit':
-                                    // For submit buttons, the form submission is handled by the form itself
-                                    // No additional navigation needed here as it's handled in handleSubmit
+                                    // For submit buttons, let the form handle submission naturally
+                                    // Don't prevent default - let the form's onSubmit handle it
+                                    console.log('Submit button clicked - letting form handle submission');
                                     break;
                                 
                                 case 'navigation':
-                                    // Navigate to next node
+                                    // Prevent default and navigate to next node
+                                    e.preventDefault();
                                     if (onNext) {
                                         onNext();
                                     }
@@ -365,11 +367,12 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                                 
                                 case 'custom':
                                     // Custom actions are handled entirely by the onClick prop
-                                    // No default behavior
+                                    // No default behavior unless specified
                                     break;
                                 
                                 default:
                                     // Default to navigation behavior
+                                    e.preventDefault();
                                     if (onNext) {
                                         onNext();
                                     }
@@ -569,11 +572,13 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                             boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                             ...element.props?.style
                         }}
-                        onClick={() => {
+                        onClick={(e) => {
+                            console.log('🎯 SubmitButton clicked - will trigger form submission');
                             // Execute custom onClick if defined
                             if (element.props?.onClick) {
                                 element.props.onClick();
                             }
+                            // Don't prevent default - let the form handle submission
                         }}
                     >
                         {element.props?.text || element.props?.children || 'Submit'}
@@ -687,20 +692,46 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
 
         if (rootElement) {
             formFields = extractFormFields(rootElement);
+            console.log('📋 Extracted form fields:', formFields);
+            console.log('🌳 Root element:', rootElement);
         }
     }
+
+    // Check if there are any submit buttons in the canvas
+    const hasSubmitButtons = (element: any): boolean => {
+        if (!element) return false;
+        
+        if (element.type === 'SubmitButton' || 
+            (element.type === 'Button' && element.props?.actionType === 'submit')) {
+            return true;
+        }
+        
+        if (element.children) {
+            return element.children.some((child: any) => hasSubmitButtons(child));
+        }
+        
+        return false;
+    };
+
+    const needsFormWrapper = formFields.length > 0 || hasSubmitButtons(rootElement);
+    console.log('🔧 Form wrapper needed?', needsFormWrapper, '| Form fields:', formFields.length, '| Has submit buttons:', hasSubmitButtons(rootElement));
 
     const initialValues = generateInitialValues(formFields);
     const validationSchema = generateValidationSchema(formFields);
 
     const handleSubmit = (values: any, { setSubmitting }: any) => {
-        console.log('Form submitted with values:', values);
+        console.log('🎯 handleSubmit called with values:', values);
+        console.log('📝 Form fields extracted:', formFields);
+        
         // Handle form submission here
         setTimeout(() => {
-            alert(JSON.stringify(values, null, 2));
+            console.log('✅ Form submission completed');
+            alert(`Form Submitted Successfully!\n\n${JSON.stringify(values, null, 2)}`);
             setSubmitting(false);
+            
             // Navigate to next node if onNext is available
             if (onNext) {
+                console.log('🔄 Navigating to next node...');
                 onNext();
             }
         }, 400);
@@ -738,15 +769,18 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                     🎨 {canvasName}
                 </h2>
 
-                {formFields.length > 0 ? (
+                {needsFormWrapper ? (
                     <Formik
                         initialValues={initialValues}
                         validationSchema={validationSchema}
                         onSubmit={handleSubmit}
                     >
-                        {({ isSubmitting, values, errors, touched }) => (
-                            <Form>
-                                {rootElement && renderElement(rootElement, formFields)}
+                        {({ isSubmitting, values, errors, touched }) => {
+                            console.log('📝 Formik form rendered with fields:', formFields.length);
+                            console.log('🎛️ Current form values:', values);
+                            return (
+                                <Form>
+                                    {rootElement && renderElement(rootElement, formFields)}
 
                                 {/* Debug information */}
                                 <details style={{ marginTop: '20px' }}>
@@ -767,7 +801,8 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({ canvasData, canv
                                     </pre>
                                 </details>
                             </Form>
-                        )}
+                            );
+                        }}
                     </Formik>
                 ) : (
                     <div>
